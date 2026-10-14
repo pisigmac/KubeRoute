@@ -1,0 +1,101 @@
+version: "3.9"
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: kuberoute
+      POSTGRES_PASSWORD: kuberoute_dev
+      POSTGRES_DB: kuberoute
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./services/orchestrator/internal/db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kuberoute"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+
+  nats:
+    image: nats:2-alpine
+    ports:
+      - "${NATS_PORT:-4222}:4222"
+      - "${NATS_MGMT_PORT:-8222}:8222"
+    command: "-js -m 8222"
+    volumes:
+      - nats_data:/data/jetstream
+
+  orchestrator:
+    build:
+      context: services/orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "${ORCH_HTTP_PORT:-8080}:8080"
+      - "${ORCH_GRPC_PORT:-50051}:50051"
+    environment:
+      DATABASE_URL: postgres://kuberoute:kuberoute_dev@postgres:5432/kuberoute?sslmode=disable
+      REDIS_URL: redis:6379
+      NATS_URL: nats:4222
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      KUBEROUTE_ENV: local
+      AI_ENGINE_URL: http://ai-engine:8081
+      DASHBOARD_URL: http://localhost:${DASHBOARD_PORT:-3000}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      nats:
+        condition: service_started
+
+  ai-engine:
+    build:
+      context: services/ai-engine
+      dockerfile: Dockerfile
+    ports:
+      - "${AI_ENGINE_PORT:-8081}:8081"
+    environment:
+      DATABASE_URL: postgres://kuberoute:kuberoute_dev@postgres:5432/kuberoute?sslmode=disable
+      REDIS_URL: redis:6379
+      NATS_URL: nats:4222
+      MODEL_CONFIG_PATH: /app/config/ai-engine.config.yaml
+    volumes:
+      - ./services/ai-engine/config:/app/config
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
+  dashboard:
+    build:
+      context: apps/dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "${DASHBOARD_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${ORCH_HTTP_PORT:-8080}
+    volumes:
+      - ./apps/dashboard:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      orchestrator:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:

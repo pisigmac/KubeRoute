@@ -1,0 +1,71 @@
+syntax = "proto3";
+package kuberoute.agent;
+option go_package = "github.com/kuberoute/agent/proto";
+
+service AgentService {
+  rpc StreamMetrics (stream MetricBatch) returns (stream DecisionBatch);
+  rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+  rpc GetConfig (ConfigRequest) returns (ConfigResponse);
+  rpc ReportEvent (EventRequest) returns (EventResponse);
+}
+
+message MetricBatch {
+  string cluster_id = 1;
+  repeated Metric metrics = 2;
+  int64 timestamp = 3;
+}
+
+message Metric {
+  string name = 1;
+  double value = 2;
+  map<string, string> labels = 3;
+}
+
+message DecisionBatch {
+  repeated RoutingDecision decisions = 1;
+}
+
+message RoutingDecision {
+  string decision_id = 1;
+  string decision_type = 2;
+  string workload_namespace = 3;
+  string workload_name = 4;
+  string target_node = 5;
+  double confidence = 6;
+  string reason = 7;
+  map<string, string> params = 8;
+}
+
+message HeartbeatRequest {
+  string cluster_id = 1;
+  string agent_version = 2;
+  int32 node_count = 3;
+  string status = 4;
+}
+
+message HeartbeatResponse {
+  bool accepted = 1;
+  string config_version = 2;
+}
+
+message ConfigRequest {
+  string cluster_id = 1;
+  string current_version = 2;
+}
+
+message ConfigResponse {
+  string config_version = 1;
+  bytes config_data = 2;
+}
+
+message EventRequest {
+  string cluster_id = 1;
+  string event_type = 2;
+  string message = 3;
+  map<string, string> metadata = 4;
+  int64 timestamp = 5;
+}
+
+message EventResponse {
+  bool received = 1;
+}

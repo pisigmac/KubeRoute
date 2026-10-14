@@ -1,0 +1,24 @@
+models:
+  traffic_prediction:
+    type: "xgboost"
+    input_features: ["request_rate_1m", "request_rate_5m", "latency_p99", "error_rate", "time_of_day", "day_of_week"]
+    output: "predicted_rps_30m"
+    refresh_interval: "1h"
+
+  cost_optimization:
+    type: "linear_programming"
+    solver: "pulp"
+    constraints:
+      - "availability > 0.99"
+      - "spot_ratio < 0.6"
+      - "memory_headroom > 20%"
+    objective: "minimize_total_cost"
+
+  failure_prediction:
+    type: "random_forest"
+    threshold: 0.7
+
+  placement:
+    type: "heuristic_ml"
+    primary: "cost_aware"
+    fallback: "bin_packing"
