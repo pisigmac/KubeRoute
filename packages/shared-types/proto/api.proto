@@ -1,0 +1,81 @@
+syntax = "proto3";
+package kuberoute.api;
+option go_package = "github.com/kuberoute/api/proto";
+
+service ApiService {
+  rpc GetCluster (GetClusterRequest) returns (Cluster);
+  rpc ListClusters (ListClustersRequest) returns (ListClustersResponse);
+  rpc ListDecisions (ListDecisionsRequest) returns (ListDecisionsResponse);
+  rpc ApplyDecision (ApplyDecisionRequest) returns (DecisionResponse);
+  rpc RejectDecision (RejectDecisionRequest) returns (DecisionResponse);
+}
+
+message GetClusterRequest {
+  string cluster_id = 1;
+}
+
+message ListClustersRequest {
+  string tenant_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ListClustersResponse {
+  repeated Cluster clusters = 1;
+  int32 total = 2;
+}
+
+message Cluster {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string provider = 4;
+  string region = 5;
+  string k8s_version = 6;
+  string agent_version = 7;
+  string status = 8;
+  int32 node_count = 9;
+  string created_at = 10;
+}
+
+message ListDecisionsRequest {
+  string cluster_id = 1;
+  string status = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ListDecisionsResponse {
+  repeated Decision decisions = 1;
+  int32 total = 2;
+}
+
+message Decision {
+  string id = 1;
+  string cluster_id = 2;
+  string workload_id = 3;
+  string decision_type = 4;
+  string target_node_id = 5;
+  double confidence_score = 6;
+  double predicted_cost_savings = 7;
+  int32 predicted_latency_ms = 8;
+  string reason = 9;
+  bool applied = 10;
+  string created_at = 11;
+}
+
+message ApplyDecisionRequest {
+  string decision_id = 1;
+  string user_id = 2;
+}
+
+message RejectDecisionRequest {
+  string decision_id = 1;
+  string user_id = 2;
+  string reason = 3;
+}
+
+message DecisionResponse {
+  bool success = 1;
+  string message = 2;
+}
