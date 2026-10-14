@@ -114,9 +114,15 @@ kubeconfig
 kind-config-local.yaml
 *.tar
 *.zip
-*.md
 
 # ------------------------------------------------------------------------------
 # Unrelated / Extraneous Local Directories
 # ------------------------------------------------------------------------------
 vikasbudde-landing/
+
+# ------------------------------------------------------------------------------
+# AI Agent Instructions & Workspace Directives (Local IDE)
+# ------------------------------------------------------------------------------
+/AGENTS.md
+/GEMINI.md
+/CLAUDE.md
